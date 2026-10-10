@@ -1,50 +1,75 @@
 name: Release Obsidian plugin
 
 on:
-    push:
-        tags:
-            - '*'
+  push:
+    tags:
+      - '*'
 
 jobs:
-    build:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-            id-token: write
-            attestations: write
-        steps:
-            - uses: actions/checkout@v6
+  release:
+    runs-on: ubuntu-latest
 
-            - name: Use Node.js
-              uses: actions/setup-node@v6
-              with:
-                  node-version: 24
-                  cache: 'npm'
+    permissions:
+      contents: write
 
-            - name: Build plugin
-              run: |
-                  npm ci
-                  npm run build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
-            - name: Check for optional styles
-              id: styles
-              run: |
-                  [ -f styles.css ] && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
 
-            - name: Attest build provenance
-              uses: actions/attest@v4
-              with:
-                  subject-path: |
-                      main.js
-                      ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
+      - name: Install dependencies
+        run: npm ci
 
-            - name: Create release
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  tag="${GITHUB_REF#refs/tags/}"
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
 
-                  gh release create "$tag" \
-                    --title="$tag" \
-                    --draft \
-                    main.js manifest.json ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
+          const tag = process.env.RELEASE_TAG;
+          const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));
+          const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+          const versions = JSON.parse(readFileSync('versions.json', 'utf8'));
+
+          if (!/^\d+\.\d+\.\d+$/.test(tag)) {
+            throw new Error(`Invalid release tag: ${tag}`);
+          }
+
+          if (manifest.version !== tag || pkg.version !== tag) {
+            throw new Error('Release tag and package versions do not match');
+          }
+
+          if (versions[tag] !== manifest.minAppVersion) {
+            throw new Error('versions.json is inconsistent with manifest.json');
+          }
+
+          console.log(`Validated release ${tag}`);
+          NODE
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          files=(main.js manifest.json)
+
+          if [[ -f styles.css ]]; then
+            files+=(styles.css)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" "${files[@]}" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --draft
