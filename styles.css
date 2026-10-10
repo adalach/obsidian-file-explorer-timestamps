@@ -1,8 +1,44 @@
 /*
+ * Modification times appended to rows of the native file explorer.
+ *
+ * Every rule is scoped to `.fet-active`, a class only decorated explorer
+ * containers receive, so the plugin never changes the layout of a tree it is
+ * not decorating. Colours come from Obsidian's own variables, which keeps the
+ * timestamps muted and correct in both light and dark themes.
+ */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+/* Free space goes to the timestamp, not to the name: the name gives up width
+   first and truncates with an ellipsis (its native behaviour) while the time
+   stays readable and aligned on the right. */
+.fet-active .nav-file-title > .nav-file-title-content {
+	flex: 1 1 auto;
+	min-width: 0;
+}
 
-If your plugin does not need CSS, delete this file.
+.fet-active .nav-file-title > .fet-timestamp {
+	flex: 0 0 auto;
+	margin-inline-start: auto;
+	padding-inline-start: var(--size-4-2, 8px);
+	align-self: center;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	white-space: nowrap;
+	/* The text is decoration on top of a row that must keep working: never let
+	   it swallow a click, a drag or a right-click meant for the file. */
+	pointer-events: none;
+}
 
-*/
+/* In a very narrow sidebar a visible timestamp would squeeze the name out of
+   existence, so below this width the name wins and the time steps aside.
+   Engines without container query support ignore the block and keep it. */
+.fet-active .nav-file-title {
+	container-type: inline-size;
+}
+
+@container (max-width: 160px) {
+	.fet-timestamp {
+		display: none;
+	}
+}
