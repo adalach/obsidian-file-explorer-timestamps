@@ -61,11 +61,7 @@ export class TimestampSettingTab extends PluginSettingTab {
 				toggle
 					.setValue(this.plugin.settings.showTimestamps)
 					.onChange(async (value) => {
-						this.plugin.settings.showTimestamps = value;
-						await this.plugin.saveSettings();
-						this.plugin.applySettings();
-						// Re-render so the format control reflects the new state.
-						this.display();
+						await this.plugin.setShowTimestamps(value);
 					}),
 			);
 

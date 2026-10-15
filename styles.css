@@ -42,3 +42,12 @@
 		display: none;
 	}
 }
+
+/* Keep the toolbar control visible when timestamps are hidden. */
+.fet-toolbar-toggle {
+	color: var(--text-muted);
+}
+
+.fet-toolbar-toggle.fet-toolbar-toggle-active {
+	color: var(--text-accent);
+}

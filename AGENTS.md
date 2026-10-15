@@ -16,6 +16,7 @@ File Explorer Timestamps is an Obsidian community plugin that displays file modi
 - `src/settings.ts`: Settings and persistence
 - `src/format.ts`: Timestamp formatting
 - `src/explorer/controller.ts`: Explorer panels and Vault events
+- `src/explorer/toolbar-toggle.ts`: Persistent file explorer header toggle
 - `src/explorer/view-decorator.ts`: DOM decoration
 - `styles.css`: Timestamp appearance
 

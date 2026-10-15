@@ -22,6 +22,7 @@ The timestamps appear directly in Obsidian's built-in Files sidebar.
 ## Features
 
 - **Native file explorer integration** — Displays timestamps directly alongside file names, without replacing the built-in file tree.
+- **One-click visibility toggle** — A clock icon beside the built-in file explorer actions shows or hides timestamps without disabling the plugin. The choice stays in sync with settings and persists after a restart.
 - **All file types** — Supports Markdown notes, PDFs, images, and other files in your vault.
 - **Automatic updates** — Refreshes timestamps when files are modified, created, renamed, or moved.
 - **Preserves native interactions** — Keeps standard file navigation, drag-and-drop, renaming, and context menus.
@@ -37,6 +38,8 @@ The timestamps appear directly in Obsidian's built-in Files sidebar.
 | Time format | `MM-DD HH:mm` | Choose between `MM-DD HH:mm` and `YYYY-MM-DD HH:mm`. |
 
 All timestamps are displayed in your local time zone.
+
+Click the clock icon beside the file explorer's sort and collapse controls to show or hide timestamps. The highlighted icon means timestamps are visible. The control remains available when timestamps are hidden, including in additional file explorer panels.
 
 ## Installation
 
@@ -80,7 +83,8 @@ This plugin uses a minimal DOM enhancement approach:
 2. Adds a lightweight timestamp element to each file row.
 3. Uses `MutationObserver` to detect changes in the file explorer.
 4. Listens for Vault events to keep timestamps synchronized.
-5. Removes injected elements and event listeners when disabled.
+5. Removes injected elements and event listeners when the plugin unloads.
+6. Adds a small toggle to each file explorer header; it changes the same saved setting as the settings tab.
 
 The native file explorer is preserved, and no note content is modified.
 
@@ -114,6 +118,7 @@ src/
   format.ts
   explorer/
     controller.ts
+    toolbar-toggle.ts
     view-decorator.ts
 ```
 

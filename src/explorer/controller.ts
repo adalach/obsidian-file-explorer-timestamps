@@ -1,5 +1,6 @@
 import type { Plugin } from 'obsidian';
 import { ExplorerViewDecorator } from './view-decorator';
+import { ExplorerToolbarToggle } from './toolbar-toggle';
 import type { FileExplorerTimestampsSettings } from '../settings';
 
 /** View type of the core file explorer. */
@@ -19,6 +20,7 @@ const SWEEP_DELAY_MS = 100;
  */
 export class TimestampController {
 	private readonly decorators = new Map<HTMLElement, ExplorerViewDecorator>();
+	private readonly toggles = new Map<HTMLElement, ExplorerToolbarToggle>();
 	private sweepTimer: number | null = null;
 	private vaultEventsRegistered = false;
 	private active = false;
@@ -27,6 +29,7 @@ export class TimestampController {
 	constructor(
 		private readonly plugin: Plugin,
 		private readonly getSettings: () => FileExplorerTimestampsSettings,
+		private readonly onToggle: () => void,
 	) {}
 
 	start(): void {
@@ -56,12 +59,8 @@ export class TimestampController {
 
 		this.active = this.getSettings().showTimestamps;
 
-		if (!this.active) {
-			this.teardown();
-			return;
-		}
-
 		this.reconcile();
+		for (const toggle of this.toggles.values()) toggle.updateState();
 		this.refreshAll();
 	}
 
@@ -83,7 +82,7 @@ export class TimestampController {
 	 * exist: one per panel, and none left behind for closed ones.
 	 */
 	private reconcile(): void {
-		if (this.destroyed || !this.active) return;
+		if (this.destroyed) return;
 
 		const liveContainers = new Set<HTMLElement>();
 
@@ -94,7 +93,17 @@ export class TimestampController {
 			if (!containerEl || liveContainers.has(containerEl)) continue;
 			liveContainers.add(containerEl);
 
-			if (this.decorators.has(containerEl)) continue;
+			if (!this.toggles.has(containerEl)) {
+				const toggle = new ExplorerToolbarToggle(
+					containerEl,
+					() => this.getSettings().showTimestamps,
+					this.onToggle,
+				);
+				this.toggles.set(containerEl, toggle);
+				toggle.start();
+			}
+
+			if (!this.active || this.decorators.has(containerEl)) continue;
 
 			const decorator = new ExplorerViewDecorator(
 				this.plugin.app,
@@ -106,9 +115,15 @@ export class TimestampController {
 		}
 
 		for (const [containerEl, decorator] of this.decorators) {
-			if (liveContainers.has(containerEl)) continue;
+			if (this.active && liveContainers.has(containerEl)) continue;
 			decorator.destroy();
 			this.decorators.delete(containerEl);
+		}
+
+		for (const [containerEl, toggle] of this.toggles) {
+			if (liveContainers.has(containerEl)) continue;
+			toggle.destroy();
+			this.toggles.delete(containerEl);
 		}
 	}
 
@@ -147,5 +162,7 @@ export class TimestampController {
 
 		for (const decorator of this.decorators.values()) decorator.destroy();
 		this.decorators.clear();
+		for (const toggle of this.toggles.values()) toggle.destroy();
+		this.toggles.clear();
 	}
 }
